@@ -31,6 +31,7 @@ func resourceAwsEMR() *schema.Resource {
                         "master_instance_type": &schema.Schema{
                                 Type:     schema.TypeString,
                                 Required: true,
+                                ForceNew: true,
                         },
                         "core_instance_type": &schema.Schema{
                                 Type:     schema.TypeString,
