@@ -108,11 +108,12 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 	// If we're destroying, we have no need of variables unless they are depended
 	// on by the count of a resource.
 	if modDiff != nil && modDiff.Destroy {
-		if n.hasDestroyEdgeInPath(opts, nil) {
+		if n.hasDestroyEdgeInPath(opts, nil, nil) {
 			log.Printf("[DEBUG] Variable has destroy edge from %s, not a noop",
 				dag.VertexName(opts.Vertex))
 			return false
 		}
+
 		log.Printf("[DEBUG] Variable has no included destroy edges: noop!")
 		return true
 	}
@@ -134,15 +135,32 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 // hasDestroyEdgeInPath recursively walks for a destroy edge, ensuring that
 // a variable both has no immediate destroy edges or any in its full module
 // path, ensuring that links do not get severed in the middle.
-func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(opts *NoopOpts, vertex dag.Vertex) bool {
+func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(
+	opts *NoopOpts,
+	vertex dag.Vertex,
+	seen map[dag.Vertex]struct{}) bool {
 	if vertex == nil {
 		vertex = opts.Vertex
 	}
 
-	log.Printf("[DEBUG] hasDestroyEdgeInPath: Looking for destroy edge: %s - %T", dag.VertexName(vertex), vertex)
+	// seen keeps track of the nodes we've checked already. This makes this
+	// resilient to cycles which aren't verified at this point.
+	if seen == nil {
+		seen = make(map[dag.Vertex]struct{})
+	}
+	seen[vertex] = struct{}{}
+
+	log.Printf(
+		"[DEBUG] hasDestroyEdgeInPath: Looking for destroy edge: %s - %T",
+		dag.VertexName(vertex), vertex)
 	for _, v := range opts.Graph.UpEdges(vertex).List() {
+		// If we've seen this edge already, ignore it.
+		if _, ok := seen[v]; ok {
+			continue
+		}
+
 		if len(opts.Graph.UpEdges(v).List()) > 1 {
-			if n.hasDestroyEdgeInPath(opts, v) == true {
+			if n.hasDestroyEdgeInPath(opts, v, seen) {
 				return true
 			}
 		}
@@ -156,6 +174,7 @@ func (n *GraphNodeConfigVariable) hasDestroyEdgeInPath(opts *NoopOpts, vertex da
 			}
 		}
 	}
+
 	return false
 }
 

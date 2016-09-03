@@ -160,6 +160,7 @@ type ContextGraphOpts struct {
 
 // Graph returns the graph for this config.
 func (c *Context) Graph(g *ContextGraphOpts) (*Graph, error) {
+	log.Printf("[INFO] Building graph with options: %#v", g)
 	return c.graphBuilder(g).Build(RootModulePath)
 }
 

@@ -573,6 +573,9 @@ func TestContext2Apply_destroyDataModule(t *testing.T) {
 	// Manually created diff since this was the type of diff we saw that
 	// caused the erroneous behavior. This is a pretty standard diff that
 	// is destroying resources.
+	//
+	// Interestingly, if we do a normal apply then destroy plan, the bug
+	// doesn't appear. It specifically seems to require incomplete state.
 	diff := &Diff{
 		Modules: []*ModuleDiff{
 			&ModuleDiff{
