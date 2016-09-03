@@ -112,6 +112,10 @@ func (d *Diff) String() string {
 	return strings.TrimSpace(buf.String())
 }
 
+func (d *Diff) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
 func (d *Diff) init() {
 	if d.Modules == nil {
 		rootDiff := &ModuleDiff{Path: rootModulePath}
@@ -277,6 +281,10 @@ func (d *ModuleDiff) String() string {
 	}
 
 	return buf.String()
+}
+
+func (d *ModuleDiff) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
 }
 
 // InstanceDiff is the diff of a resource from some state to another.

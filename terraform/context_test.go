@@ -212,6 +212,47 @@ func testDiffFn(
 	return diff, nil
 }
 
+func testDataApplyFn(
+	info *InstanceInfo,
+	d *InstanceDiff) (*InstanceState, error) {
+	id := "-"
+	result := &InstanceState{
+		ID:         id,
+		Attributes: make(map[string]string),
+	}
+
+	if d != nil {
+		result = result.MergeDiff(d)
+	}
+
+	return result, nil
+}
+
+func testDataDiffFn(
+	info *InstanceInfo,
+	c *ResourceConfig) (*InstanceDiff, error) {
+	diff := new(InstanceDiff)
+	diff.Attributes = make(map[string]*ResourceAttrDiff)
+
+	for k, v := range c.Raw {
+		if _, ok := v.(string); !ok {
+			continue
+		}
+
+		// Ignore __-prefixed keys since they're used for magic
+		if k[0] == '_' && k[1] == '_' {
+			continue
+		}
+
+		diff.Attributes[k] = &ResourceAttrDiff{
+			Old: "",
+			New: v.(string),
+		}
+	}
+
+	return diff, nil
+}
+
 // generate ResourceAttrDiffs for nested data structures in tests
 func testFlatAttrDiffs(k string, i interface{}) map[string]*ResourceAttrDiff {
 	diffs := make(map[string]*ResourceAttrDiff)
@@ -253,6 +294,11 @@ func testProvider(prefix string) *MockResourceProvider {
 	p.ResourcesReturn = []ResourceType{
 		ResourceType{
 			Name: fmt.Sprintf("%s_instance", prefix),
+		},
+	}
+	p.DataSourcesReturn = []DataSource{
+		DataSource{
+			Name: fmt.Sprintf("%s_data_source", prefix),
 		},
 	}
 

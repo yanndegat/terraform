@@ -561,6 +561,65 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	}
 }
 
+// HashiCorp customer issue with no specific GitHub issue to track it.
+func TestContext2Apply_destroyDataModule(t *testing.T) {
+	m := testModule(t, "apply-TODO")
+	p := testProvider("test")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	p.ReadDataApplyFn = testDataApplyFn
+	p.ReadDataDiffFn = testDataDiffFn
+
+	// Manually created diff since this was the type of diff we saw that
+	// caused the erroneous behavior. This is a pretty standard diff that
+	// is destroying resources.
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: []string{"root"},
+				Resources: map[string]*InstanceDiff{
+					"data.test_data_source.foo": &InstanceDiff{Destroy: true},
+					"test_instance.foo":         &InstanceDiff{Destroy: true},
+				},
+			},
+
+			&ModuleDiff{
+				Path:    []string{"root", "child"},
+				Destroy: true,
+				Resources: map[string]*InstanceDiff{
+					"test_instance.a": &InstanceDiff{Destroy: true},
+					"test_instance.b": &InstanceDiff{Destroy: true},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Diff:   diff,
+		Providers: map[string]ResourceProviderFactory{
+			"test": testProviderFuncFixed(p),
+		},
+	})
+
+	/*
+		if p, err := ctx.Plan(); err != nil {
+			t.Fatalf("err: %s", err)
+		} else {
+			t.Logf(p.String())
+		}
+	*/
+
+	// Apply directly since we have the diff above
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	println(state.String())
+	t.Fatal("nope")
+}
+
 // https://github.com/hashicorp/terraform/pull/5096
 func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	// Config contains CBD resource depending on non-CBD resource, which triggers
