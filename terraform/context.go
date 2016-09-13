@@ -166,22 +166,11 @@ func (c *Context) Graph(g *ContextGraphOpts) (*Graph, error) {
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
 func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
-	// TODO test
-	providers := make([]string, 0, len(c.providers))
-	for k, _ := range c.providers {
-		providers = append(providers, k)
-	}
-
-	provisioners := make([]string, 0, len(c.provisioners))
-	for k, _ := range c.provisioners {
-		provisioners = append(provisioners, k)
-	}
-
 	return &BuiltinGraphBuilder{
 		Root:         c.module,
 		Diff:         c.diff,
-		Providers:    providers,
-		Provisioners: provisioners,
+		Providers:    c.providersList(),
+		Provisioners: c.provisionersList(),
 		State:        c.state,
 		Targets:      c.targets,
 		Destroy:      c.destroy,
@@ -320,8 +309,20 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
-	// Build the graph
-	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	// Build the graph. If it is a destroy operation, we use the
+	// standard graph builder. If it is an apply operation, we use
+	// our new graph builder.
+	var graph *Graph
+	var err error
+	if c.destroy {
+		graph, err = c.Graph(&ContextGraphOpts{Validate: true})
+	} else {
+		graph, err = (&ApplyGraphBuilder{
+			Diff:         c.diff,
+			Providers:    c.providersList(),
+			Provisioners: c.provisionersList(),
+		}).Build(RootModulePath)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -561,6 +562,24 @@ func (c *Context) walk(
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 	walker := &ContextGraphWalker{Context: c, Operation: operation}
 	return walker, graph.Walk(walker)
+}
+
+func (c *Context) providersList() []string {
+	providers := make([]string, 0, len(c.providers))
+	for k, _ := range c.providers {
+		providers = append(providers, k)
+	}
+
+	return providers
+}
+
+func (c *Context) provisionersList() []string {
+	provisioners := make([]string, 0, len(c.provisioners))
+	for k, _ := range c.provisioners {
+		provisioners = append(provisioners, k)
+	}
+
+	return provisioners
 }
 
 // parseVariableAsHCL parses the value of a single variable as would have been specified
