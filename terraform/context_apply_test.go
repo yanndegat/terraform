@@ -1711,6 +1711,8 @@ func TestContext2Apply_multiVar(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 
+	t.Logf("Initial state: %s", state.String())
+
 	// Apply again, reduce the count to 1
 	{
 		ctx := testContext2(t, &ContextOpts{
@@ -1734,6 +1736,10 @@ func TestContext2Apply_multiVar(t *testing.T) {
 		}
 
 		actual := state.RootModule().Outputs["output"]
+		if actual == nil {
+			t.Fatal("missing output")
+		}
+
 		expected := "bar0"
 		if actual.Value != expected {
 			t.Fatalf("bad: \n%s", actual)
