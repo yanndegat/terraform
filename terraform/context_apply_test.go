@@ -3835,7 +3835,7 @@ func TestContext2Apply_outputMultiIndex(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_taint(t *testing.T) {
+func TestContext2Apply_taintX(t *testing.T) {
 	m := testModule(t, "apply-taint")
 	p := testProvider("aws")
 
@@ -3883,8 +3883,10 @@ func TestContext2Apply_taint(t *testing.T) {
 		State: s,
 	})
 
-	if _, err := ctx.Plan(); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf("plan: %s", p)
 	}
 
 	state, err := ctx.Apply()
