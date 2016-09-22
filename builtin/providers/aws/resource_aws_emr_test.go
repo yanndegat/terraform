@@ -2,14 +2,15 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"log"
-	"testing"
 )
 
 func TestAccAWSEmrCluster_basic(t *testing.T) {
@@ -92,7 +93,7 @@ func testAccCheckAWSEmrClusterExists(n string, v *emr.RunJobFlowOutput) resource
 
 var testAccAWSEmrClusterConfig = fmt.Sprintf(`
 provider "aws" {
-   region = "ap-southeast-2"
+   region = "us-west-2"
 }
 
 resource "aws_emr" "tf-test-cluster" {
