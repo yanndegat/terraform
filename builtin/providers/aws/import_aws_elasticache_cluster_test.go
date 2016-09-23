@@ -20,7 +20,7 @@ func TestAccAWSElasticacheCluster_importBasic(t *testing.T) {
 		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSElasticacheClusterConfig,
+				Config: testAccAWSElasticacheClusterConfigBasic,
 			},
 
 			resource.TestStep{
