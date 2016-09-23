@@ -15,13 +15,14 @@ import (
 
 func TestAccAWSEmrCluster_basic(t *testing.T) {
 	var jobFlow emr.RunJobFlowOutput
+	r := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSEmrDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEmrClusterConfig,
+				Config: testAccAWSEmrClusterConfig(r),
 				Check:  testAccCheckAWSEmrClusterExists("aws_emr.tf-test-cluster", &jobFlow),
 			},
 		},
@@ -91,20 +92,22 @@ func testAccCheckAWSEmrClusterExists(n string, v *emr.RunJobFlowOutput) resource
 	}
 }
 
-var testAccAWSEmrClusterConfig = fmt.Sprintf(`
+func testAccAWSEmrClusterConfig(r int) string {
+	return fmt.Sprintf(`
 provider "aws" {
-   region = "us-west-2"
+  region = "us-west-2"
 }
 
 resource "aws_emr" "tf-test-cluster" {
-  name          = "emr-%s"
+  name          = "emr-test-%d"
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
 
   ec2_attributes {
-    subnet_id   = "${aws_subnet.main.id}"
+    subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.allow_all.id}"
-    emr_managed_slave_security_group = "${aws_security_group.allow_all.id}"
+    emr_managed_slave_security_group  = "${aws_security_group.allow_all.id}"
+    instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
   }
 
   master_instance_type = "m3.xlarge"
@@ -112,21 +115,23 @@ resource "aws_emr" "tf-test-cluster" {
   core_instance_count  = 1
 
   tags {
-        role        = "rolename"
-        dns_zone    = "env_zone"
-        env         = "env"
-        name        = "name-env"
+    role     = "rolename"
+    dns_zone = "env_zone"
+    env      = "env"
+    name     = "name-env"
   }
 
   bootstrap_action {
-    path  ="s3://elasticmapreduce/bootstrap-actions/run-if"
-    name  ="runif"
-    args  =["instance.isMaster=true","echo running on master node"]
+    path = "s3://elasticmapreduce/bootstrap-actions/run-if"
+    name = "runif"
+    args = ["instance.isMaster=true", "echo running on master node"]
   }
 
   configurations = "test-fixtures/emr_configurations.json"
 
   depends_on = ["aws_main_route_table_association.a"]
+
+  service_role = "${aws_iam_role.iam_emr_default_role.arn}"
 }
 
 resource "aws_security_group" "allow_all" {
@@ -140,28 +145,41 @@ resource "aws_security_group" "allow_all" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
   egress {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   depends_on = ["aws_subnet.main"]
+
   lifecycle {
-        ignore_changes = ["ingress", "egress"]
+    ignore_changes = ["ingress", "egress"]
+  }
+
+  tags {
+    name = "emr_test"
   }
 }
 
 resource "aws_vpc" "main" {
   cidr_block           = "168.31.0.0/16"
   enable_dns_hostnames = true
+
+  tags {
+    name = "emr_test"
+  }
 }
 
 resource "aws_subnet" "main" {
-  vpc_id                  = "${aws_vpc.main.id}"
-  cidr_block              = "168.31.0.0/20"
-#  map_public_ip_on_launch = true
+  vpc_id     = "${aws_vpc.main.id}"
+  cidr_block = "168.31.0.0/20"
+
+  tags {
+    name = "emr_test"
+  }
 }
 
 resource "aws_internet_gateway" "gw" {
@@ -182,4 +200,174 @@ resource "aws_main_route_table_association" "a" {
   route_table_id = "${aws_route_table.r.id}"
 }
 
-`, acctest.RandString(10))
+###
+
+# IAM things
+
+###
+
+# IAM role for EMR Service
+resource "aws_iam_role" "iam_emr_default_role" {
+  name = "iam_emr_default_role"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "elasticmapreduce.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_role_policy_attachment" "service-attach" {
+  role       = "${aws_iam_role.iam_emr_default_role.id}"
+  policy_arn = "${aws_iam_policy.iam_emr_default_policy.arn}"
+}
+
+resource "aws_iam_policy" "iam_emr_default_policy" {
+  name = "iam_emr_default_policy"
+
+  policy = <<EOT
+{
+    "Version": "2012-10-17",
+    "Statement": [{
+        "Effect": "Allow",
+        "Resource": "*",
+        "Action": [
+            "ec2:AuthorizeSecurityGroupEgress",
+            "ec2:AuthorizeSecurityGroupIngress",
+            "ec2:CancelSpotInstanceRequests",
+            "ec2:CreateNetworkInterface",
+            "ec2:CreateSecurityGroup",
+            "ec2:CreateTags",
+            "ec2:DeleteNetworkInterface",
+            "ec2:DeleteSecurityGroup",
+            "ec2:DeleteTags",
+            "ec2:DescribeAvailabilityZones",
+            "ec2:DescribeAccountAttributes",
+            "ec2:DescribeDhcpOptions",
+            "ec2:DescribeInstanceStatus",
+            "ec2:DescribeInstances",
+            "ec2:DescribeKeyPairs",
+            "ec2:DescribeNetworkAcls",
+            "ec2:DescribeNetworkInterfaces",
+            "ec2:DescribePrefixLists",
+            "ec2:DescribeRouteTables",
+            "ec2:DescribeSecurityGroups",
+            "ec2:DescribeSpotInstanceRequests",
+            "ec2:DescribeSpotPriceHistory",
+            "ec2:DescribeSubnets",
+            "ec2:DescribeVpcAttribute",
+            "ec2:DescribeVpcEndpoints",
+            "ec2:DescribeVpcEndpointServices",
+            "ec2:DescribeVpcs",
+            "ec2:DetachNetworkInterface",
+            "ec2:ModifyImageAttribute",
+            "ec2:ModifyInstanceAttribute",
+            "ec2:RequestSpotInstances",
+            "ec2:RevokeSecurityGroupEgress",
+            "ec2:RunInstances",
+            "ec2:TerminateInstances",
+            "ec2:DeleteVolume",
+            "ec2:DescribeVolumeStatus",
+            "ec2:DescribeVolumes",
+            "ec2:DetachVolume",
+            "iam:GetRole",
+            "iam:GetRolePolicy",
+            "iam:ListInstanceProfiles",
+            "iam:ListRolePolicies",
+            "iam:PassRole",
+            "s3:CreateBucket",
+            "s3:Get*",
+            "s3:List*",
+            "sdb:BatchPutAttributes",
+            "sdb:Select",
+            "sqs:CreateQueue",
+            "sqs:Delete*",
+            "sqs:GetQueue*",
+            "sqs:PurgeQueue",
+            "sqs:ReceiveMessage"
+        ]
+    }]
+}
+EOT
+}
+
+# IAM Role for EC2 Instance Profile
+resource "aws_iam_role" "iam_emr_profile_role" {
+  name = "iam_emr_profile_role"
+
+  assume_role_policy = <<EOT
+{
+  "Version": "2008-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOT
+}
+
+resource "aws_iam_instance_profile" "emr_profile" {
+  name  = "emr_profile"
+  roles = ["${aws_iam_role.iam_emr_profile_role.name}"]
+}
+
+resource "aws_iam_role_policy_attachment" "profile-attach" {
+  role       = "${aws_iam_role.iam_emr_profile_role.id}"
+  policy_arn = "${aws_iam_policy.iam_emr_profile_policy.arn}"
+}
+
+resource "aws_iam_policy" "iam_emr_profile_policy" {
+  name = "iam_emr_profile_policy"
+
+  policy = <<EOT
+{
+    "Version": "2012-10-17",
+    "Statement": [{
+        "Effect": "Allow",
+        "Resource": "*",
+        "Action": [
+            "cloudwatch:*",
+            "dynamodb:*",
+            "ec2:Describe*",
+            "elasticmapreduce:Describe*",
+            "elasticmapreduce:ListBootstrapActions",
+            "elasticmapreduce:ListClusters",
+            "elasticmapreduce:ListInstanceGroups",
+            "elasticmapreduce:ListInstances",
+            "elasticmapreduce:ListSteps",
+            "kinesis:CreateStream",
+            "kinesis:DeleteStream",
+            "kinesis:DescribeStream",
+            "kinesis:GetRecords",
+            "kinesis:GetShardIterator",
+            "kinesis:MergeShards",
+            "kinesis:PutRecord",
+            "kinesis:SplitShard",
+            "rds:Describe*",
+            "s3:*",
+            "sdb:*",
+            "sns:*",
+            "sqs:*"
+        ]
+    }]
+}
+EOT
+}
+`, r)
+}
