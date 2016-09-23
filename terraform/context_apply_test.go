@@ -3046,6 +3046,8 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("apply err: %s", err)
 		}
+
+		t.Logf("Step 1 state: %s", state)
 	}
 
 	h := new(HookRecordApplyOrder)
