@@ -12,6 +12,52 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestAccAWSEIP_importEc2Classic(t *testing.T) {
+	resourceName := "aws_eip.bar"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEIPInstanceConfig,
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"vpc",
+				},
+			},
+		},
+	})
+}
+
+func TestAccAWSEIP_importVpc(t *testing.T) {
+	resourceName := "aws_eip.bar"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSEIPNetworkInterfaceConfig,
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					"vpc",
+				},
+			},
+		},
+	})
+}
+
 func TestAccAWSEIP_basic(t *testing.T) {
 	var conf ec2.Address
 
