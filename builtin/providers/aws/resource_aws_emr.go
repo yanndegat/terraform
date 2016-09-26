@@ -344,7 +344,7 @@ func resourceAwsEMRClusterDelete(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+	err = resource.Retry(10*time.Minute, func() *resource.RetryError {
 		resp, err := conn.ListInstances(&emr.ListInstancesInput{
 			ClusterId: aws.String(d.Id()),
 		})
@@ -360,6 +360,8 @@ func resourceAwsEMRClusterDelete(d *schema.ResourceData, meta interface{}) error
 			return nil
 		}
 
+		// Collect instance status states, wait for all instances to be terminated
+		// before moving on
 		var terminated []string
 		for j, i := range resp.Instances {
 			if i.Status != nil {
