@@ -30,7 +30,7 @@ func resourceAwsEMRInstanceGroup() *schema.Resource {
 			"instance_count": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  60,
+				Default:  0,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
