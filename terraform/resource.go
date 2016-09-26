@@ -93,6 +93,15 @@ func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	return result
 }
 
+// DeepCopy copies the ResourceConfig.
+func (c *ResourceConfig) DeepCopy() *ResourceConfig {
+	// Copy the raw config
+	raw := c.raw.Copy()
+
+	// Create a new config
+	return NewResourceConfig(raw)
+}
+
 // CheckSet checks that the given list of configuration keys is
 // properly set. If not, errors are returned for each unset key.
 //
