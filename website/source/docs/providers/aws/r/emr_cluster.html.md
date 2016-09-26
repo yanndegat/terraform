@@ -15,7 +15,7 @@ for more information.
 ## Example Usage
 
 ```
-resource "aws_emr" "emr-test-cluster" {
+resource "aws_emr_cluster" "emr-test-cluster" {
   name          = "emr-test-arn"
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
@@ -48,7 +48,7 @@ resource "aws_emr" "emr-test-cluster" {
 }
 ```
 
-The `aws_emr` resource typically requires two IAM roles, one for the EMR Cluster
+The `aws_emr_cluster` resource typically requires two IAM roles, one for the EMR Cluster
 to use as a service, and another to place on your Cluster Instances to interact
 with AWS from those instances. The suggested role policy template for the EMR service is `AmazonElasticMapReduceRole`,
 and `AmazonElasticMapReduceforEC2Role` for the EC2 profile. See the [Getting
@@ -133,7 +133,7 @@ provider "aws" {
   region = "us-west-2"
 }
 
-resource "aws_emr" "tf-test-cluster" {
+resource "aws_emr_cluster" "tf-test-cluster" {
   name          = "emr-test-arn"
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
