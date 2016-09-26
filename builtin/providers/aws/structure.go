@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/redshift"
 	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -622,12 +623,19 @@ func flattenOptions(list []*rds.Option) []map[string]interface{} {
 				r["db_security_group_memberships"] = dbs
 			}
 			if i.OptionSettings != nil {
+				spew.Sdump("Options HERE %s", i.OptionSettings)
 				settings := make([]map[string]interface{}, 0, len(i.OptionSettings))
 				for _, j := range i.OptionSettings {
-					settings = append(settings, map[string]interface{}{
-						"name":  *j.Name,
-						"value": *j.Value,
-					})
+					spew.Sdump("Option HERE %s", j)
+
+					setting := map[string]interface{}{
+						"name": *j.Name,
+					}
+					if j.Value != nil {
+						setting["value"] = *j.Value
+					}
+
+					settings = append(settings, setting)
 				}
 
 				r["option_settings"] = settings
