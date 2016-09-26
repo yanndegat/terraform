@@ -150,7 +150,8 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 
 	applications := d.Get("applications").(*schema.Set).List()
 	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp, instanceProfile string
-	instanceProfile = "EMR_EC2_DefaultRole"
+
+	var instanceProfile string
 
 	if a, ok := d.GetOk("ec2_attributes"); ok {
 		ec2Attributes := a.([]interface{})
@@ -205,7 +206,6 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 	if v, ok := d.GetOk("bootstrap_action"); ok {
 		bootstrapActions := v.(*schema.Set).List()
-		log.Printf("[DEBUG] %v\n", bootstrapActions)
 		params.BootstrapActions = expandBootstrapActions(bootstrapActions)
 	}
 	if v, ok := d.GetOk("tags"); ok {
