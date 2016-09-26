@@ -4,17 +4,18 @@ import (
 	"log"
 
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsEMRTaskGroup() *schema.Resource {
+func resourceAwsEMRInstanceGroup() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsEMRTaskGroupCreate,
-		Read:   resourceAwsEMRTaskGroupRead,
-		Update: resourceAwsEMRTaskGroupUpdate,
-		Delete: resourceAwsEMRTaskGroupDelete,
+		Create: resourceAwsEMRInstanceGroupCreate,
+		Read:   resourceAwsEMRInstanceGroupRead,
+		Update: resourceAwsEMRInstanceGroupUpdate,
+		Delete: resourceAwsEMRInstanceGroupDelete,
 		Schema: map[string]*schema.Schema{
 			"cluster_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -39,7 +40,7 @@ func resourceAwsEMRTaskGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
 	clusterId := d.Get("cluster_id").(string)
@@ -71,12 +72,12 @@ func resourceAwsEMRTaskGroupCreate(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceAwsEMRTaskGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) error {
 
 	return nil
 }
 
-func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRInstanceGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
 	log.Printf("[DEBUG] Modify EMR task group")
@@ -109,7 +110,7 @@ func resourceAwsEMRTaskGroupUpdate(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceAwsEMRTaskGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRInstanceGroupDelete(d *schema.ResourceData, meta interface{}) error {
 
 	return nil
 }
