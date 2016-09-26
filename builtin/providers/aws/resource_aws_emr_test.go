@@ -208,7 +208,7 @@ resource "aws_main_route_table_association" "a" {
 
 # IAM role for EMR Service
 resource "aws_iam_role" "iam_emr_default_role" {
-  name = "iam_emr_default_role"
+  name = "iam_emr_default_role_%d"
 
   assume_role_policy = <<EOT
 {
@@ -233,7 +233,7 @@ resource "aws_iam_role_policy_attachment" "service-attach" {
 }
 
 resource "aws_iam_policy" "iam_emr_default_policy" {
-  name = "iam_emr_default_policy"
+  name = "iam_emr_default_policy_%d"
 
   policy = <<EOT
 {
@@ -303,7 +303,7 @@ EOT
 
 # IAM Role for EC2 Instance Profile
 resource "aws_iam_role" "iam_emr_profile_role" {
-  name = "iam_emr_profile_role"
+  name = "iam_emr_profile_role_%d"
 
   assume_role_policy = <<EOT
 {
@@ -333,7 +333,7 @@ resource "aws_iam_role_policy_attachment" "profile-attach" {
 }
 
 resource "aws_iam_policy" "iam_emr_profile_policy" {
-  name = "iam_emr_profile_policy"
+  name = "iam_emr_profile_policy_%d"
 
   policy = <<EOT
 {
@@ -369,5 +369,5 @@ resource "aws_iam_policy" "iam_emr_profile_policy" {
 }
 EOT
 }
-`, r)
+`, r, r, r, r, r)
 }

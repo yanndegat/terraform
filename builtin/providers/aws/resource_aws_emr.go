@@ -89,8 +89,9 @@ func resourceAwsEMR() *schema.Resource {
 							Optional: true,
 						},
 						"instance_profile": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
+							Type: schema.TypeString,
+							// TODO: should be ForceNew?
+							Required: true,
 						},
 					},
 				},
@@ -123,8 +124,9 @@ func resourceAwsEMR() *schema.Resource {
 				Optional: true,
 			},
 			"service_role": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type: schema.TypeString,
+				// TODO: should be force new?
+				Required: true,
 			},
 			"visible_to_all_users": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -147,7 +149,7 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 	coreInstanceCount := d.Get("core_instance_count").(int)
 
 	applications := d.Get("applications").(*schema.Set).List()
-	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp, instanceProfile, serviceRole string
+	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp, instanceProfile string
 	instanceProfile = "EMR_EC2_DefaultRole"
 
 	if a, ok := d.GetOk("ec2_attributes"); ok {
@@ -163,12 +165,6 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		if len(strings.TrimSpace(attributes["instance_profile"].(string))) != 0 {
 			instanceProfile = strings.TrimSpace(attributes["instance_profile"].(string))
 		}
-	}
-
-	if v, ok := d.GetOk("service_role"); ok {
-		serviceRole = v.(string)
-	} else {
-		serviceRole = "EMR_DefaultRole"
 	}
 
 	emrApps := expandApplications(applications)
@@ -194,10 +190,13 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		Name:         aws.String(d.Get("name").(string)),
 		Applications: emrApps,
 
-		JobFlowRole:       aws.String(instanceProfile),
 		ReleaseLabel:      aws.String(d.Get("release_label").(string)),
-		ServiceRole:       aws.String(serviceRole),
+		ServiceRole:       aws.String(d.Get("service_role").(string)),
 		VisibleToAllUsers: aws.Bool(d.Get("visible_to_all_users").(bool)),
+	}
+
+	if instanceProfile != "" {
+		params.JobFlowRole = aws.String(instanceProfile)
 	}
 
 	if v, ok := d.GetOk("log_uri"); ok {
@@ -262,8 +261,8 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if resp.Cluster == nil {
-		d.SetId("")
 		log.Printf("[DEBUG] EMR Cluster (%s) not found", d.Id())
+		d.SetId("")
 		return nil
 	}
 
@@ -345,6 +344,43 @@ func resourceAwsEMRDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		log.Printf("[ERROR], %s", err)
 		return err
+	}
+
+	err = resource.Retry(5*time.Minute, func() *resource.RetryError {
+		resp, err := conn.ListInstances(&emr.ListInstancesInput{
+			ClusterId: aws.String(d.Id()),
+		})
+
+		if err != nil {
+			return resource.NonRetryableError(err)
+		}
+
+		instanceCount := len(resp.Instances)
+
+		if resp == nil || instanceCount == 0 {
+			log.Printf("[DEBUG] No instances found for EMR Cluster (%s)", d.Id())
+			return nil
+		}
+
+		var terminated []string
+		for j, i := range resp.Instances {
+			if i.Status != nil {
+				if *i.Status.State == "TERMINATED" {
+					terminated = append(terminated, *i.Ec2InstanceId)
+				}
+			} else {
+				log.Printf("[DEBUG] Cluster instance (%d : %s) has no status", j, *i.Ec2InstanceId)
+			}
+		}
+		if len(terminated) == instanceCount {
+			log.Printf("[DEBUG] All (%d) EMR Cluster (%s) Instances terminated", instanceCount, d.Id())
+			return nil
+		}
+		return resource.RetryableError(fmt.Errorf("[DEBUG] EMR Cluster (%s) has (%d) Instances remaining, retrying", d.Id(), len(resp.Instances)))
+	})
+
+	if err != nil {
+		log.Printf("[ERR] Error waiting for EMR Cluster (%s) Instances to drain", d.Id())
 	}
 
 	d.SetId("")
