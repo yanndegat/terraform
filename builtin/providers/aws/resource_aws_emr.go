@@ -17,12 +17,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsEMR() *schema.Resource {
+func resourceAwsEMRCluster() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsEMRCreate,
-		Read:   resourceAwsEMRRead,
-		Update: resourceAwsEMRUpdate,
-		Delete: resourceAwsEMRDelete,
+		Create: resourceAwsEMRClusterCreate,
+		Read:   resourceAwsEMRClusterRead,
+		Update: resourceAwsEMRClusterUpdate,
+		Delete: resourceAwsEMRClusterDelete,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -137,7 +137,7 @@ func resourceAwsEMR() *schema.Resource {
 	}
 }
 
-func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
 	log.Printf("[DEBUG] Creating EMR cluster")
@@ -150,8 +150,6 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 
 	applications := d.Get("applications").(*schema.Set).List()
 	var userKey, subnet, extraMasterSecGrp, extraSlaveSecGrp, emrMasterSecGrp, emrSlaveSecGrp, instanceProfile string
-
-	var instanceProfile string
 
 	if a, ok := d.GetOk("ec2_attributes"); ok {
 		ec2Attributes := a.([]interface{})
@@ -245,10 +243,10 @@ func resourceAwsEMRCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[WARN] Error waiting for EMR Cluster state to be \"WAITING\": %s", err)
 	}
 
-	return resourceAwsEMRRead(d, meta)
+	return resourceAwsEMRClusterRead(d, meta)
 }
 
-func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRClusterRead(d *schema.ResourceData, meta interface{}) error {
 	emrconn := meta.(*AWSClient).emrconn
 
 	req := &emr.DescribeClusterInput{
@@ -293,7 +291,7 @@ func resourceAwsEMRRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRClusterUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
 	if d.HasChange("core_instance_count") {
@@ -328,10 +326,10 @@ func resourceAwsEMRUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] Modify EMR Cluster done...")
 	}
 
-	return resourceAwsEMRRead(d, meta)
+	return resourceAwsEMRClusterRead(d, meta)
 }
 
-func resourceAwsEMRDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEMRClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).emrconn
 
 	req := &emr.TerminateJobFlowsInput{
