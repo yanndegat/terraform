@@ -48,7 +48,6 @@ func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{})
 	instanceCount := d.Get("instance_count").(int)
 	groupName := d.Get("name").(string)
 
-	log.Printf("[DEBUG] Creating EMR task group")
 	params := &emr.AddInstanceGroupsInput{
 		InstanceGroups: []*emr.InstanceGroupConfig{
 			{
@@ -60,9 +59,10 @@ func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{})
 		},
 		JobFlowId: aws.String(clusterId),
 	}
+
+	log.Printf("[DEBUG] Creating EMR task group params: %s", params)
 	resp, err := conn.AddInstanceGroups(params)
 	if err != nil {
-		log.Printf("[ERROR] %s", err)
 		return err
 	}
 
@@ -73,7 +73,17 @@ func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).emrconn
+	req := &emr.ListInstanceGroupsInput{
+		ClusterId: aws.String(d.Get("cluster_id").(string)),
+	}
 
+	respGrps, errGrps := conn.ListInstanceGroups(req)
+	if errGrps != nil {
+		return fmt.Errorf("Error reading EMR cluster: %s", errGrps)
+	}
+	instanceGroups := respGrps.InstanceGroups
+	log.Printf("\n@@@\n[DEBUG] Instance Groups: \n%s\n@@@\n", instanceGroups)
 	return nil
 }
 
