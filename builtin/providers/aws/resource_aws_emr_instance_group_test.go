@@ -2,36 +2,37 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"testing"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"log"
-	"testing"
 )
 
-func TestAccAWSEmrTaskGroup_basic(t *testing.T) {
+func TestAccAWSEmrInstanceGroup_basic(t *testing.T) {
 	var jobFlow emr.RunJobFlowOutput
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEmrTaskGroupDestroy,
+		CheckDestroy: testAccCheckAWSEmrInstanceGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEmrTaskGroupConfig,
-				Check:  testAccCheckAWSEmrTaskGroupExists("aws_emr_task_group.task", &jobFlow),
+				Config: testAccAWSEmrInstanceGroupConfig,
+				Check:  testAccCheckAWSEmrInstanceGroupExists("aws_emr_cluster_instance_group.task", &jobFlow),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSEmrTaskGroupDestroy(s *terraform.State) error {
+func testAccCheckAWSEmrInstanceGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).emrconn
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_emr" {
+		if rs.Type != "aws_emr_cluster" {
 			continue
 		}
 
@@ -59,7 +60,7 @@ func testAccCheckAWSEmrTaskGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSEmrTaskGroupExists(n string, v *emr.RunJobFlowOutput) resource.TestCheckFunc {
+func testAccCheckAWSEmrInstanceGroupExists(n string, v *emr.RunJobFlowOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -79,20 +80,20 @@ func testAccCheckAWSEmrTaskGroupExists(n string, v *emr.RunJobFlowOutput) resour
 	}
 }
 
-var testAccAWSEmrTaskGroupConfig = fmt.Sprintf(`
+var testAccAWSEmrInstanceGroupConfig = fmt.Sprintf(`
 provider "aws" {
-   region = "ap-southeast-2"
+  region = "us-west-2"
 }
 
-resource "aws_emr" "tf-test-cluster" {
+resource "aws_emr_cluster" "tf-test-cluster" {
   name          = "emr-%s"
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
 
   ec2_attributes {
-    subnet_id   = "${aws_subnet.main.id}"
+    subnet_id                         = "${aws_subnet.main.id}"
     emr_managed_master_security_group = "${aws_security_group.allow_all.id}"
-    emr_managed_slave_security_group = "${aws_security_group.allow_all.id}"
+    emr_managed_slave_security_group  = "${aws_security_group.allow_all.id}"
   }
 
   master_instance_type = "m3.xlarge"
@@ -100,23 +101,23 @@ resource "aws_emr" "tf-test-cluster" {
   core_instance_count  = 1
 
   tags {
-        role        = "rolename"
-        dns_zone    = "env_zone"
-        env         = "env"
-        name        = "name-env"
+    role     = "rolename"
+    dns_zone = "env_zone"
+    env      = "env"
+    name     = "name-env"
   }
 
   bootstrap_action {
-    path  ="s3://elasticmapreduce/bootstrap-actions/run-if"
-    name  ="runif"
-    args  =["instance.isMaster=true","echo running on master node"]
+    path = "s3://elasticmapreduce/bootstrap-actions/run-if"
+    name = "runif"
+    args = ["instance.isMaster=true", "echo running on master node"]
   }
 
   configurations = "test-fixtures/emr_configurations.json"
 }
 
-resource "aws_emr_task_group" "task" {
-  cluster_id     = "${aws_emr.tf-test-cluster.id}"
+resource "aws_emr_cluster_instance_group" "task" {
+  cluster_id     = "${aws_emr_cluster.tf-test-cluster.id}"
   instance_count = 1
   instance_type  = "m3.xlarge"
 }
@@ -132,16 +133,18 @@ resource "aws_security_group" "allow_all" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
   egress {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   depends_on = ["aws_subnet.main"]
+
   lifecycle {
-        ignore_changes = ["ingress", "egress"]
+    ignore_changes = ["ingress", "egress"]
   }
 }
 
@@ -151,9 +154,10 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_subnet" "main" {
-  vpc_id                  = "${aws_vpc.main.id}"
-  cidr_block              = "168.31.0.0/20"
-#  map_public_ip_on_launch = true
+  vpc_id     = "${aws_vpc.main.id}"
+  cidr_block = "168.31.0.0/20"
+
+  #  map_public_ip_on_launch = true
 }
 
 resource "aws_internet_gateway" "gw" {
@@ -172,5 +176,4 @@ resource "aws_route_table" "r" {
 resource "aws_main_route_table_association" "a" {
   vpc_id         = "${aws_vpc.main.id}"
   route_table_id = "${aws_route_table.r.id}"
-}
-`, acctest.RandString(10))
+}`, acctest.RandString(10))

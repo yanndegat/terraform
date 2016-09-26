@@ -1,50 +1,24 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_emr_cluster"
-sidebar_current: "docs-aws-resource-emr-cluster"
+page_title: "AWS: aws_emr_instance_group"
+sidebar_current: "docs-aws-resource-emr-instance-group"
 description: |-
-  Provides an Elastic MapReduce Cluster
+  Provides an Elastic MapReduce Cluster Instance Group
 ---
 
-# aws\_emr\_cluster
+# aws\_emr\_instance\_group
 
-Provides an Elastic MapReduce Cluster, a web service that makes it easy to 
-process large amounts of data efficiently. See [Amazon Elastic MapReduce Documentation](https://aws.amazon.com/documentation/elastic-mapreduce/) 
+Provides an Elastic MapReduce Cluster Instance Group configuration. 
+See [Amazon Elastic MapReduce Documentation](http://docs.aws.amazon.com/en_en/ElasticMapReduce/latest/ManagementGuide/InstanceGroups.html) 
 for more information. 
 
 ## Example Usage
 
 ```
-resource "aws_emr_cluster" "emr-test-cluster" {
-  name          = "emr-test-arn"
-  release_label = "emr-4.6.0"
-  applications  = ["Spark"]
-
-  ec2_attributes {
-    subnet_id                         = "${aws_subnet.main.id}"
-    emr_managed_master_security_group = "${aws_security_group.sg.id}"
-    emr_managed_slave_security_group  = "${aws_security_group.sg.id}"
-    instance_profile                  = "${aws_iam_instance_profile.emr_profile.arn}"
-  }
-
-  master_instance_type = "m3.xlarge"
-  core_instance_type   = "m3.xlarge"
-  core_instance_count  = 1
-
-  tags {
-    role     = "rolename"
-    env      = "env"
-  }
-
-  bootstrap_action {
-    path = "s3://elasticmapreduce/bootstrap-actions/run-if"
-    name = "runif"
-    args = ["instance.isMaster=true", "echo running on master node"]
-  }
-
-  configurations = "test-fixtures/emr_configurations.json"
-
-  service_role = "${aws_iam_role.iam_emr_service_role.arn}"
+resource "aws_emr_cluster_instance_group" "task" {
+  cluster_id     = "${aws_emr_cluster.tf-test-cluster.id}"
+  instance_count = 1
+  instance_type  = "m3.xlarge"
 }
 ```
 

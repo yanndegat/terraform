@@ -23,7 +23,7 @@ func TestAccAWSEmrCluster_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEmrClusterConfig(r),
-				Check:  testAccCheckAWSEmrClusterExists("aws_emr.tf-test-cluster", &jobFlow),
+				Check:  testAccCheckAWSEmrClusterExists("aws_emr_cluster.tf-test-cluster", &jobFlow),
 			},
 		},
 	})
@@ -33,7 +33,7 @@ func testAccCheckAWSEmrDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).emrconn
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_emr" {
+		if rs.Type != "aws_emr_cluster" {
 			continue
 		}
 
@@ -98,7 +98,7 @@ provider "aws" {
   region = "us-west-2"
 }
 
-resource "aws_emr" "tf-test-cluster" {
+resource "aws_emr_cluster" "tf-test-cluster" {
   name          = "emr-test-%d"
   release_label = "emr-4.6.0"
   applications  = ["Spark"]
