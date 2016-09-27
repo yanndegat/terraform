@@ -32,6 +32,14 @@ func resourceAwsEMRInstanceGroup() *schema.Resource {
 				Optional: true,
 				Default:  0,
 			},
+			"running_instance_count": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"status": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -78,12 +86,48 @@ func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) e
 		ClusterId: aws.String(d.Get("cluster_id").(string)),
 	}
 
-	respGrps, errGrps := conn.ListInstanceGroups(req)
-	if errGrps != nil {
-		return fmt.Errorf("Error reading EMR cluster: %s", errGrps)
+	var group *emr.InstanceGroup
+	marker := aws.String("intitial")
+	for marker != nil {
+		log.Printf("[DEBUG] EMR Cluster Instance Marker: %s", *marker)
+		respGrps, errGrps := conn.ListInstanceGroups(req)
+		if errGrps != nil {
+			return fmt.Errorf("[ERR] Error reading EMR cluster (%s): %s", d.Id(), errGrps)
+		}
+		if respGrps == nil {
+			return fmt.Errorf("[ERR] Error reading EMR Instance Group (%s)", d.Id())
+		}
+
+		instanceGroups := respGrps.InstanceGroups
+		log.Printf("\n@@@\n[DEBUG] Instance Groups: \n%s\n@@@\n", instanceGroups)
+
+		for _, ig := range respGrps.InstanceGroups {
+			if d.Id() == *ig.Id {
+				group = ig
+				break
+			}
+		}
+		if group != nil {
+			// break out of marker loop
+			break
+		}
+		marker = respGrps.Marker
 	}
-	instanceGroups := respGrps.InstanceGroups
-	log.Printf("\n@@@\n[DEBUG] Instance Groups: \n%s\n@@@\n", instanceGroups)
+
+	if group == nil {
+		log.Printf("[DEBUG] EMR Instance Group (%s) not found, removing", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	d.Set("name", group.Name)
+	d.Set("instance_count", group.RequestedInstanceCount)
+	d.Set("running_instance_count", group.RunningInstanceCount)
+	d.Set("instance_type", group.InstanceType)
+	if group.Status != nil && group.Status.State != nil {
+		d.Set("status", group.Status.State)
+	}
+
 	return nil
 }
 
@@ -97,10 +141,6 @@ func resourceAwsEMRInstanceGroupUpdate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("[WARN] Error updating task group, change name is not supported by api")
 	}
 
-	if d.HasChange("instance_type") {
-		return fmt.Errorf("[WARN] Error updating task group, change instance_type is not supported by api")
-	}
-
 	params := &emr.ModifyInstanceGroupsInput{
 		InstanceGroups: []*emr.InstanceGroupModifyConfig{
 			{
@@ -111,16 +151,29 @@ func resourceAwsEMRInstanceGroupUpdate(d *schema.ResourceData, meta interface{})
 	}
 	resp, err := conn.ModifyInstanceGroups(params)
 	if err != nil {
-		log.Printf("[ERROR] %s", err)
 		return err
 	}
 
-	log.Printf("[DEBUG] Modify EMR task group finished: %#v", resp)
+	log.Printf("[DEBUG] Modify EMR task group finished: %s", resp)
 
 	return nil
 }
 
 func resourceAwsEMRInstanceGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[WARN] AWS EMR Instance Group does not support DELETE; resizing cluster to zero before removing from state")
+	conn := meta.(*AWSClient).emrconn
+	params := &emr.ModifyInstanceGroupsInput{
+		InstanceGroups: []*emr.InstanceGroupModifyConfig{
+			{
+				InstanceGroupId: aws.String(d.Id()),
+				InstanceCount:   aws.Int64(0),
+			},
+		},
+	}
 
+	_, err := conn.ModifyInstanceGroups(params)
+	if err != nil {
+		return err
+	}
 	return nil
 }
