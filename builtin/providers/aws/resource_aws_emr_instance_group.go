@@ -115,13 +115,13 @@ func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func fetchEMRInstanceGroup(meta interface{}, clusterId, groupId string) (*emr.InstanceGroup, error) {
+func fetchAllEMRInstanceGroups(meta interface{}, clusterId string) ([]*emr.InstanceGroup, error) {
 	conn := meta.(*AWSClient).emrconn
 	req := &emr.ListInstanceGroupsInput{
 		ClusterId: aws.String(clusterId),
 	}
 
-	var group *emr.InstanceGroup
+	var groups []*emr.InstanceGroup
 	marker := aws.String("intitial")
 	for marker != nil {
 		log.Printf("[DEBUG] EMR Cluster Instance Marker: %s", *marker)
@@ -130,28 +130,44 @@ func fetchEMRInstanceGroup(meta interface{}, clusterId, groupId string) (*emr.In
 			return nil, fmt.Errorf("[ERR] Error reading EMR cluster (%s): %s", clusterId, errGrps)
 		}
 		if respGrps == nil {
-			return nil, fmt.Errorf("[ERR] Error reading EMR Instance Group (%s) for cluster (%s)", groupId, clusterId)
+			return nil, fmt.Errorf("[ERR] Error reading EMR Instance Group for cluster (%s)", clusterId)
 		}
 
-		instanceGroups := respGrps.InstanceGroups
-		log.Printf("\n@@@\n[DEBUG] Instance Groups: \n%s\n@@@\n", instanceGroups)
-
-		for _, ig := range respGrps.InstanceGroups {
-			if groupId == *ig.Id {
-				group = ig
-				break
+		if respGrps.InstanceGroups != nil {
+			for _, g := range respGrps.InstanceGroups {
+				groups = append(groups, g)
 			}
-		}
-		if group != nil {
-			// break out of marker loop
-			break
+		} else {
+			log.Printf("[DEBUG] EMR Instance Group list was empty")
 		}
 		marker = respGrps.Marker
+	}
+
+	if len(groups) == 0 {
+		return nil, fmt.Errorf("[WARN] No instance groups found for EMR Cluster (%s)", clusterId)
+	}
+
+	return groups, nil
+}
+
+func fetchEMRInstanceGroup(meta interface{}, clusterId, groupId string) (*emr.InstanceGroup, error) {
+	groups, err := fetchAllEMRInstanceGroups(meta, clusterId)
+	if err != nil {
+		return nil, err
+	}
+
+	var group *emr.InstanceGroup
+	for _, ig := range groups {
+		if groupId == *ig.Id {
+			group = ig
+			break
+		}
 	}
 
 	if group != nil {
 		return group, nil
 	}
+
 	return nil, emrInstanceGroupNotFound
 }
 

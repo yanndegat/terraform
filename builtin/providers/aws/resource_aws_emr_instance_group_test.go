@@ -14,7 +14,7 @@ import (
 )
 
 func TestAccAWSEmrInstanceGroup_basic(t *testing.T) {
-	var jobFlow emr.RunJobFlowOutput
+	var ig emr.InstanceGroup
 	rInt := acctest.RandInt()
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -23,7 +23,7 @@ func TestAccAWSEmrInstanceGroup_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEmrInstanceGroupConfig(rInt),
-				Check:  testAccCheckAWSEmrInstanceGroupExists("aws_emr_instance_group.task", &jobFlow),
+				Check:  testAccCheckAWSEmrInstanceGroupExists("aws_emr_instance_group.task", &ig),
 			},
 		},
 	})
@@ -61,7 +61,7 @@ func testAccCheckAWSEmrInstanceGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSEmrInstanceGroupExists(n string, v *emr.RunJobFlowOutput) resource.TestCheckFunc {
+func testAccCheckAWSEmrInstanceGroupExists(n string, v *emr.InstanceGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -70,13 +70,17 @@ func testAccCheckAWSEmrInstanceGroupExists(n string, v *emr.RunJobFlowOutput) re
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No task group id set")
 		}
-		conn := testAccProvider.Meta().(*AWSClient).emrconn
-		_, err := conn.DescribeCluster(&emr.DescribeClusterInput{
-			ClusterId: aws.String(rs.Primary.Attributes["cluster_id"]),
-		})
+		meta := testAccProvider.Meta()
+		g, err := fetchEMRInstanceGroup(meta, rs.Primary.Attributes["cluster_id"], rs.Primary.ID)
 		if err != nil {
 			return fmt.Errorf("EMR error: %v", err)
 		}
+
+		if g == nil {
+			return fmt.Errorf("No match found for (%s)", n)
+		}
+
+		v = g
 		return nil
 	}
 }
@@ -118,6 +122,8 @@ resource "aws_emr_cluster" "tf-test-cluster" {
 
   configurations = "test-fixtures/emr_configurations.json"
   service_role = "${aws_iam_role.iam_emr_default_role.arn}"
+
+  depends_on = ["aws_internet_gateway.gw"]
 }
 
 resource "aws_emr_instance_group" "task" {
