@@ -93,13 +93,17 @@ func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	return result
 }
 
-// DeepCopy copies the ResourceConfig.
-func (c *ResourceConfig) DeepCopy() *ResourceConfig {
-	// Copy the raw config
-	raw := c.raw.Copy()
+// Equal tests if one resource config is equal to another.
+func (c *ResourceConfig) Equal(other *ResourceConfig) bool {
+	// If either is nil, just check they're both nil
+	if c == nil || other == nil {
+		return c == other
+	}
 
-	// Create a new config
-	return NewResourceConfig(raw)
+	// Not nil, just compare the fields
+	return reflect.DeepEqual(c.ComputedKeys, other.ComputedKeys) &&
+		reflect.DeepEqual(c.Raw, other.Raw) &&
+		reflect.DeepEqual(c.Config, other.Config)
 }
 
 // CheckSet checks that the given list of configuration keys is
