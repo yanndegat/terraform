@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"log"
 
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/schema"
 )
+
+var emrInstanceGroupNotFound = errors.New("No matching EMR Instance Group")
 
 func resourceAwsEMRInstanceGroup() *schema.Resource {
 	return &schema.Resource{
@@ -81,39 +84,20 @@ func resourceAwsEMRInstanceGroupCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).emrconn
-	req := &emr.ListInstanceGroupsInput{
-		ClusterId: aws.String(d.Get("cluster_id").(string)),
+	group, err := fetchEMRInstanceGroup(meta, d.Get("cluster_id").(string), d.Id())
+	if err != nil {
+		switch err {
+		case emrInstanceGroupNotFound:
+			log.Printf("[DEBUG] EMR Instance Group (%s) not found, removing", d.Id())
+			d.SetId("")
+			return nil
+		default:
+			return err
+		}
 	}
 
-	var group *emr.InstanceGroup
-	marker := aws.String("intitial")
-	for marker != nil {
-		log.Printf("[DEBUG] EMR Cluster Instance Marker: %s", *marker)
-		respGrps, errGrps := conn.ListInstanceGroups(req)
-		if errGrps != nil {
-			return fmt.Errorf("[ERR] Error reading EMR cluster (%s): %s", d.Id(), errGrps)
-		}
-		if respGrps == nil {
-			return fmt.Errorf("[ERR] Error reading EMR Instance Group (%s)", d.Id())
-		}
-
-		instanceGroups := respGrps.InstanceGroups
-		log.Printf("\n@@@\n[DEBUG] Instance Groups: \n%s\n@@@\n", instanceGroups)
-
-		for _, ig := range respGrps.InstanceGroups {
-			if d.Id() == *ig.Id {
-				group = ig
-				break
-			}
-		}
-		if group != nil {
-			// break out of marker loop
-			break
-		}
-		marker = respGrps.Marker
-	}
-
+	// Guard against the chance of fetchEMRInstanceGroup returning nil group but
+	// not a emrInstanceGroupNotFound error
 	if group == nil {
 		log.Printf("[DEBUG] EMR Instance Group (%s) not found, removing", d.Id())
 		d.SetId("")
@@ -129,6 +113,46 @@ func resourceAwsEMRInstanceGroupRead(d *schema.ResourceData, meta interface{}) e
 	}
 
 	return nil
+}
+
+func fetchEMRInstanceGroup(meta interface{}, clusterId, groupId string) (*emr.InstanceGroup, error) {
+	conn := meta.(*AWSClient).emrconn
+	req := &emr.ListInstanceGroupsInput{
+		ClusterId: aws.String(clusterId),
+	}
+
+	var group *emr.InstanceGroup
+	marker := aws.String("intitial")
+	for marker != nil {
+		log.Printf("[DEBUG] EMR Cluster Instance Marker: %s", *marker)
+		respGrps, errGrps := conn.ListInstanceGroups(req)
+		if errGrps != nil {
+			return nil, fmt.Errorf("[ERR] Error reading EMR cluster (%s): %s", clusterId, errGrps)
+		}
+		if respGrps == nil {
+			return nil, fmt.Errorf("[ERR] Error reading EMR Instance Group (%s) for cluster (%s)", groupId, clusterId)
+		}
+
+		instanceGroups := respGrps.InstanceGroups
+		log.Printf("\n@@@\n[DEBUG] Instance Groups: \n%s\n@@@\n", instanceGroups)
+
+		for _, ig := range respGrps.InstanceGroups {
+			if groupId == *ig.Id {
+				group = ig
+				break
+			}
+		}
+		if group != nil {
+			// break out of marker loop
+			break
+		}
+		marker = respGrps.Marker
+	}
+
+	if group != nil {
+		return group, nil
+	}
+	return nil, emrInstanceGroupNotFound
 }
 
 func resourceAwsEMRInstanceGroupUpdate(d *schema.ResourceData, meta interface{}) error {
