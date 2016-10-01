@@ -1567,10 +1567,10 @@
 			"revisionTime": "2016-06-23T23:57:31Z"
 		},
 		{
-			"checksumSHA1": "dh2tsaicjrx9LgR6uuSeilSFzAY=",
+			"checksumSHA1": "TgJKqqBm+zrGHbSJYLhQhvUhWWI=",
 			"path": "github.com/rackspace/gophercloud/openstack",
-			"revision": "985a863d6dd5f928b485dbc8ef440813aafa39ad",
-			"revisionTime": "2016-06-23T23:57:31Z"
+			"revision": "c90cb954266e1bdd6d1914678fd6909fc5fabbfa",
+			"revisionTime": "2016-08-25T13:54:39Z"
 		},
 		{
 			"checksumSHA1": "KXOy+EDMJgyZT0MoTXMhcFZVgNM=",
@@ -1681,10 +1681,22 @@
 			"revisionTime": "2016-06-03T22:34:01Z"
 		},
 		{
-			"checksumSHA1": "yQG3tZgPMFBw2kIp4TR+9E4QH78=",
+			"checksumSHA1": "gDlQo40YDQFz3Cme/wNdsFAq568=",
 			"path": "github.com/rackspace/gophercloud/openstack/identity/v3/tokens",
-			"revision": "985a863d6dd5f928b485dbc8ef440813aafa39ad",
-			"revisionTime": "2016-06-23T23:57:31Z"
+			"revision": "c90cb954266e1bdd6d1914678fd6909fc5fabbfa",
+			"revisionTime": "2016-08-25T13:54:39Z"
+		},
+		{
+			"checksumSHA1": "UrKp6kTN4NvX4jflMn1s+uJKdKQ=",
+			"path": "github.com/rackspace/gophercloud/openstack/imageservice/v2/images",
+			"revision": "c90cb954266e1bdd6d1914678fd6909fc5fabbfa",
+			"revisionTime": "2016-08-25T13:54:39Z"
+		},
+		{
+			"checksumSHA1": "ECDa39KkvAu740PQv7zORAkWMrY=",
+			"path": "github.com/rackspace/gophercloud/openstack/imageservice/v2/members",
+			"revision": "c90cb954266e1bdd6d1914678fd6909fc5fabbfa",
+			"revisionTime": "2016-08-25T13:54:39Z"
 		},
 		{
 			"checksumSHA1": "EMdUpMYV9vQAEtBkpUdSqYaYBVc=",
@@ -1814,16 +1826,16 @@
 			"revisionTime": "2016-06-03T22:34:01Z"
 		},
 		{
-			"checksumSHA1": "U2yzK8GFNeHZqcoeotcHmK57lAI=",
+			"checksumSHA1": "g+/FqpymOvSMVXRozZsiZixb070=",
 			"path": "github.com/rackspace/gophercloud/testhelper",
-			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
-			"revisionTime": "2016-06-03T22:34:01Z"
+			"revision": "c90cb954266e1bdd6d1914678fd6909fc5fabbfa",
+			"revisionTime": "2016-08-25T13:54:39Z"
 		},
 		{
 			"checksumSHA1": "fXtvTbQBML8QLu/qpD9sAt53J00=",
 			"path": "github.com/rackspace/gophercloud/testhelper/client",
-			"revision": "d47105ce4ef90cea9a14b85c8dd172b760085828",
-			"revisionTime": "2016-06-03T22:34:01Z"
+			"revision": "c90cb954266e1bdd6d1914678fd6909fc5fabbfa",
+			"revisionTime": "2016-08-25T13:54:39Z"
 		},
 		{
 			"path": "github.com/rainycape/unidecode",
