@@ -41,9 +41,10 @@ func resourceImageV2() *schema.Resource {
 			},
 
 			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: schema.EnvDefaultFunc("OS_REGION_NAME", ""),
 			},
 
 			"local_file_path": &schema.Schema{
@@ -66,17 +67,12 @@ func resourceImageV2() *schema.Resource {
 				Default:  fmt.Sprintf("%s/.terraform/image_cache", os.Getenv("HOME")),
 			},
 
-			"image_cache_clean": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
-			},
-
 			"visibility": &schema.Schema{
 				Type:         schema.TypeString,
 				Optional:     true,
 				ForceNew:     false,
 				ValidateFunc: validateVisibility,
+				Default:      images.ImageVisibilityPrivate,
 			},
 
 			"tags": &schema.Schema{
@@ -87,14 +83,14 @@ func resourceImageV2() *schema.Resource {
 
 			"container_format": &schema.Schema{
 				Type:         schema.TypeString,
-				Optional:     true,
+				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateContainerFormat,
 			},
 
 			"disk_format": &schema.Schema{
 				Type:         schema.TypeString,
-				Optional:     true,
+				Required:     true,
 				ForceNew:     true,
 				ValidateFunc: validateDiskFormat,
 			},
@@ -104,6 +100,7 @@ func resourceImageV2() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validatePositiveInt,
+				Default:      0,
 			},
 
 			"min_ram_mb": &schema.Schema{
@@ -111,12 +108,14 @@ func resourceImageV2() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: validatePositiveInt,
+				Default:      0,
 			},
 
 			"protected": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
+				Default:  false,
 			},
 
 			"properties": &schema.Schema{

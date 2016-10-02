@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/rackspace/gophercloud/openstack/imageservice/v2/images"
-	"os"
 )
 
 func TestAccImageV2_basic(t *testing.T) {
@@ -77,11 +76,10 @@ func testAccCheckImageV2Exists(t *testing.T, n string) resource.TestCheckFunc {
 	}
 }
 
-var testAccImageV2_basic = fmt.Sprintf(`
+var testAccImageV2_basic = `
   resource "openstack_image_v2" "foo" {
-      region = "%s"
-      name   = "%s"
+      name   = "Rancher TerraformAccTest"
       image_source_url = "https://releases.rancher.com/os/latest/rancheros-openstack.img"
       container_format = "bare"
       disk_format = "qcow2"
-  }`, os.Getenv("OS_REGION_NAME"), os.Getenv("OS_IMAGE_NAME"))
+  }`
