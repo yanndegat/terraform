@@ -46,6 +46,7 @@ import (
 	nullprovider "github.com/hashicorp/terraform/builtin/providers/null"
 	openstackprovider "github.com/hashicorp/terraform/builtin/providers/openstack"
 	opsgenieprovider "github.com/hashicorp/terraform/builtin/providers/opsgenie"
+	ovhprovider "github.com/hashicorp/terraform/builtin/providers/ovh"
 	packetprovider "github.com/hashicorp/terraform/builtin/providers/packet"
 	pagerdutyprovider "github.com/hashicorp/terraform/builtin/providers/pagerduty"
 	postgresqlprovider "github.com/hashicorp/terraform/builtin/providers/postgresql"
@@ -120,6 +121,7 @@ var InternalProviders = map[string]plugin.ProviderFunc{
 	"null":         nullprovider.Provider,
 	"openstack":    openstackprovider.Provider,
 	"opsgenie":     opsgenieprovider.Provider,
+	"ovh":          ovhprovider.Provider,
 	"packet":       packetprovider.Provider,
 	"pagerduty":    pagerdutyprovider.Provider,
 	"postgresql":   postgresqlprovider.Provider,
