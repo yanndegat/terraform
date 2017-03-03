@@ -3,7 +3,6 @@ package ovh
 import (
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -22,7 +21,10 @@ func resourcePublicCloudUser() *schema.Resource {
 
 		Importer: &schema.ResourceImporter{
 			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				resourcePublicCloudUserRegeneratePassword(d, meta)
+				return nil, fmt.Errorf("error : %#v", d.Get("project_id"))
+				if err := resourcePublicCloudUserRegeneratePassword(d, meta); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -32,7 +34,7 @@ func resourcePublicCloudUser() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OVH_PROJECT_ID", ""),
+				DefaultFunc: schema.EnvDefaultFunc("OVH_PROJECT_ID", nil),
 			},
 			"description": &schema.Schema{
 				Type:     schema.TypeString,

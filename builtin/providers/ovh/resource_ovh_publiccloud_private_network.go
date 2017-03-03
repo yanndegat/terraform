@@ -3,7 +3,6 @@ package ovh
 import (
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -29,7 +28,7 @@ func resourcePublicCloudPrivateNetwork() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: schema.EnvDefaultFunc("OVH_PROJECT_ID", ""),
+				DefaultFunc: schema.EnvDefaultFunc("OVH_PROJECT_ID", nil),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
